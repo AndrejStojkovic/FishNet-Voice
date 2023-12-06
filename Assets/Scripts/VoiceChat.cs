@@ -7,6 +7,8 @@ public class VoiceChat : MonoBehaviour
     public bool Activated = true;
     public KeyCode PushToTalkKey;
 
+    public AudioSource source;
+
     private bool previousCanTalk = false;
     private bool canTalk = true;
 
@@ -25,16 +27,19 @@ public class VoiceChat : MonoBehaviour
 
         canTalk = Input.GetKey(PushToTalkKey);
 
-        if(canTalk)
+        if(!previousCanTalk && canTalk)
         {
-            // TO-DO: Record audio, stream audio to all players
             Debug.Log("[VOICE] Talking!");
+            source.clip = Microphone.Start(MicrophoneManager.Instance.GetCurrentDeviceName(), true, 1, AudioSettings.outputSampleRate);
+            source.loop = true;
+            source.Play();
         }
 
         if(previousCanTalk && !canTalk)
         {
-            // TO-DO: If player stops talking, stop recording (only for push-to-talk)
             Debug.Log("[VOICE] End talking!");
+            Microphone.End(MicrophoneManager.Instance.GetCurrentDeviceName());
+            source.clip = null;
         }
 
         previousCanTalk = canTalk;
