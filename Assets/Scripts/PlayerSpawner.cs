@@ -1,4 +1,4 @@
-﻿using FishNet.Connection;
+using FishNet.Connection;
 using FishNet.Managing;
 using FishNet.Object;
 using System;
@@ -6,16 +6,8 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-namespace FishNet.Component.Spawning
+public class PlayerSpawner : MonoBehaviour
 {
-
-    /// <summary>
-    /// Spawns a player object for clients when they connect.
-    /// Must be placed on or beneath the NetworkManager object.
-    /// </summary>
-    [AddComponentMenu("FishNet/Component/PlayerSpawner")]
-    public class PlayerSpawner : MonoBehaviour
-    {
         #region Public.
         /// <summary>
         /// Called on the server when a player is spawned.
@@ -108,6 +100,8 @@ namespace FishNet.Component.Spawning
             SetSpawn(_playerPrefab.transform, out position, out rotation);
 
             NetworkObject nob = _networkManager.GetPooledInstantiated(_playerPrefab, position, rotation, true);
+            nob.GetComponent<PlayerController>().Name = _nameInput.text;
+            _nameInput.gameObject.SetActive(false);
             // nob.GetComponent<PlayerController>();
             _networkManager.ServerManager.Spawn(nob, conn);
 
@@ -161,8 +155,4 @@ namespace FishNet.Component.Spawning
             pos = prefab.position;
             rot = prefab.rotation;
         }
-
-    }
-
-
 }
