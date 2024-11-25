@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
-using FishNet.Example.Scened;
 
 public class GameManager : NetworkBehaviour
 {
@@ -13,40 +12,30 @@ public class GameManager : NetworkBehaviour
         {
             if(instance == null)
             {
-                Debug.LogError("[ERROR] Game Manager instance not found!");
+                Debug.LogError("Game Manager instance not found!");
             }
             return instance;
         }
     }
     private static GameManager instance;
 
-    [SyncVar]
-    public List<PlayerController> Players = new List<PlayerController>();
+    public readonly SyncList<Player> Players = new SyncList<Player>();
 
     void Awake() {
         if(GameManager.Instance)
         {
-            Debug.LogError("[ERROR] Game Manager instance already exists!");
+            Debug.LogError("Game Manager instance already exists!");
             return;
         }
         instance = this;
     }
 
-    void Start()
-    {
-
-    }
-
-    void Update()
-    {
-        
-    }
 
     [Server]
-    public void RegisterPlayer(PlayerController player)
+    public void RegisterPlayer(Player player)
     {
         int idx = Players.Count;
-        player.PlayerId = idx;
+        player.PlayerId.Value = idx;
         Players.Add(player);
     }
 }

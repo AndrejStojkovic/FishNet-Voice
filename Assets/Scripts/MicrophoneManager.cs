@@ -27,12 +27,6 @@ public class MicrophoneManager : MonoBehaviour
 
     void Awake()
     {
-        // if(MicrophoneManager.Instance)
-        // {
-        //     Debug.LogError("[ERROR] Microphone Manager instance already exists!");
-        //     return;
-        // }
-
         instance = this;
     }
 
