@@ -5,11 +5,10 @@ using UnityEngine;
 
 public class PlayerController : NetworkBehaviour
 {
-    [SyncVar]
     [Min(0)]
-    public int PlayerId;
-    [SyncVar]
-    public string Name;
+    public readonly SyncVar<int> PlayerId = new SyncVar<int>();
+    
+    public readonly SyncVar<string> Name = new SyncVar<string>();
     [SerializeField]
     private GameObject _camera;
     [SerializeField]
