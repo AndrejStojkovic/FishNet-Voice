@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using FishNet.Object;
 using FishNet.Connection;
@@ -11,7 +10,9 @@ public class VoiceChat : NetworkBehaviour
 
     public enum DetectionType { PushToTalk, VoiceActivation }
     public DetectionType VoiceDetectionType = DetectionType.PushToTalk;
-    
+
+    private MicOutput micOutputSlider;
+
     public bool Activated = true;
     public KeyCode PushToTalkKey;
 
@@ -30,7 +31,10 @@ public class VoiceChat : NetworkBehaviour
     private int position;
 
     private AudioClip microphoneClip;
-    
+
+    private float[] sampleData;
+    private float[] micDataBuffer;
+
     public override void OnStartClient()
     {
         base.OnStartClient();
@@ -46,6 +50,11 @@ public class VoiceChat : NetworkBehaviour
             Debug.LogError("[VOICE] No microphone device found!");
 
         audioBuffer = new float[bufferSize];
+        sampleData = new float[bufferSize];
+        micDataBuffer = new float[bufferSize];
+        source.playOnAwake = false;
+
+        micOutputSlider = FindObjectOfType<MicOutput>();
     }
 
     void Update()
@@ -53,7 +62,13 @@ public class VoiceChat : NetworkBehaviour
         if (!Activated || !IsOwner)
             return;
 
-        // Update the microphone device if it changes
+        // Update microphone input volume
+        if (micOutputSlider != null)
+        {
+            micOutputSlider.micInputVolume = GetMicInputVolume();
+        }
+
+        // Rest of the Update logic
         string selectedDevice = MicrophoneManager.Instance.GetCurrentDeviceName();
         if (selectedDevice != deviceName)
         {
@@ -64,19 +79,19 @@ public class VoiceChat : NetworkBehaviour
         {
             case DetectionType.PushToTalk:
                 canTalk = Input.GetKey(PushToTalkKey);
-                // Start or stop the microphone based on push to talk key
                 if (canTalk && microphoneClip == null)
                 {
                     StartMicrophone();
+                    StartTalking();
                 }
                 else if (!canTalk && microphoneClip != null)
                 {
+                    StopTalking();
                     StopMicrophone();
                 }
                 break;
 
             case DetectionType.VoiceActivation:
-                // Ensure the microphone is running
                 if (microphoneClip == null)
                 {
                     StartMicrophone();
@@ -101,7 +116,6 @@ public class VoiceChat : NetworkBehaviour
 
         position = 0;
         microphoneClip = Microphone.Start(deviceName, true, 10, sampleRate);
-        while (!(Microphone.GetPosition(deviceName) > 0)) { }
     }
 
     private void StopMicrophone()
@@ -112,7 +126,7 @@ public class VoiceChat : NetworkBehaviour
         Microphone.End(deviceName);
         microphoneClip = null;
     }
-    
+
     private void UpdateMicrophone(string newDeviceName)
     {
         if (!string.IsNullOrEmpty(deviceName))
@@ -121,6 +135,7 @@ public class VoiceChat : NetworkBehaviour
 
             // Stop the current microphone
             StopTalking();
+            StopMicrophone();
         }
 
         deviceName = newDeviceName;
@@ -128,6 +143,7 @@ public class VoiceChat : NetworkBehaviour
         // If currently talking, restart with the new microphone
         if (canTalk)
         {
+            StartMicrophone();
             StartTalking();
         }
     }
@@ -137,11 +153,6 @@ public class VoiceChat : NetworkBehaviour
         if (string.IsNullOrEmpty(deviceName))
             return;
 
-        position = 0;
-
-        microphoneClip = Microphone.Start(deviceName, true, 10, sampleRate);
-        while (!(Microphone.GetPosition(deviceName) > 0)) { }
-        
         StartCoroutine(TransmitVoice());
     }
 
@@ -149,9 +160,6 @@ public class VoiceChat : NetworkBehaviour
     {
         if (string.IsNullOrEmpty(deviceName))
             return;
-
-        Microphone.End(deviceName);
-        microphoneClip = null;
 
         StopCoroutine(TransmitVoice());
     }
@@ -189,8 +197,14 @@ public class VoiceChat : NetworkBehaviour
             return false;
 
         int micPosition = Microphone.GetPosition(deviceName);
-        int sampleStartPosition = Mathf.Max(0, micPosition - bufferSize);
-        float[] sampleData = new float[bufferSize];
+
+        int sampleStartPosition = micPosition - bufferSize;
+        if (sampleStartPosition < 0)
+        {
+            // Not enough data yet
+            return false;
+        }
+
         microphoneClip.GetData(sampleData, sampleStartPosition);
 
         float sum = 0;
@@ -264,5 +278,33 @@ public class VoiceChat : NetworkBehaviour
             }
         }
         return null;
+    }
+
+    private float GetMicInputVolume()
+    {
+        if (microphoneClip == null || string.IsNullOrEmpty(deviceName))
+            return 0f;
+
+        int micPosition = Microphone.GetPosition(deviceName);
+
+        int sampleStartPosition = micPosition - bufferSize;
+        if (sampleStartPosition < 0)
+        {
+            // Not enough data yet
+            return 0f;
+        }
+
+        microphoneClip.GetData(micDataBuffer, sampleStartPosition);
+
+        float sum = 0;
+        for (int i = 0; i < micDataBuffer.Length; i++)
+        {
+            sum += micDataBuffer[i] * micDataBuffer[i]; // Squared values for RMS
+        }
+
+        float rmsValue = Mathf.Sqrt(sum / micDataBuffer.Length);
+
+        float amplifiedVolume = Mathf.Clamp(rmsValue * 50f, 0f, 1f);
+        return amplifiedVolume;
     }
 }
