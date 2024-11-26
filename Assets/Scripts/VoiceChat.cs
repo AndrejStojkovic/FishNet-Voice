@@ -51,8 +51,6 @@ public class VoiceChat : NetworkBehaviour
         sampleData = new float[bufferSize];
         micDataBuffer = new float[bufferSize];
         source.playOnAwake = false;
-
-        micOutputSlider = FindObjectOfType<MicOutput>();
     }
 
     void Update()
