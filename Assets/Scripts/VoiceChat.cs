@@ -11,8 +11,6 @@ public class VoiceChat : NetworkBehaviour
     public enum DetectionType { PushToTalk, VoiceActivation }
     public DetectionType VoiceDetectionType = DetectionType.PushToTalk;
 
-    private MicOutput micOutputSlider;
-
     public bool Activated = true;
     public KeyCode PushToTalkKey;
 
@@ -62,13 +60,6 @@ public class VoiceChat : NetworkBehaviour
         if (!Activated || !IsOwner)
             return;
 
-        // Update microphone input volume
-        if (micOutputSlider != null)
-        {
-            micOutputSlider.micInputVolume = GetMicInputVolume();
-        }
-
-        // Rest of the Update logic
         string selectedDevice = MicrophoneManager.Instance.GetCurrentDeviceName();
         if (selectedDevice != deviceName)
         {
